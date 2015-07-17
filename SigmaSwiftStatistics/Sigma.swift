@@ -1,4 +1,5 @@
 import Foundation
+import Surge
 
 /**
 
@@ -211,7 +212,6 @@ public struct Sigma {
     
     public static func kurtosis(values: [Double]) -> Double? {
 
-        
         var n = 0.0
         var mean = 0.0
         var M2 = 0.0
@@ -247,7 +247,7 @@ public struct Sigma {
     */
     
     public static func skew(values: [Double]) -> Double? {
-        // TODO: implement
+        //TODO: implement this
         return nil
     }
     
@@ -262,8 +262,15 @@ public struct Sigma {
     */
     
     public static func zeroCrossRate(values: [Double]) -> Double? {
-        // TODO: implement
-        return nil
+        var countZC = 0.0
+        let size = values.count
+        for i in 0..<size-1 {
+            if ((values[i] >= 0 && values[i+1] < 0) || (values[i] < 0 && values[i+1] >= 0)){
+                countZC++
+            }
+        }
+        
+        return countZC/Double(size)
     }
     
     
@@ -278,8 +285,16 @@ public struct Sigma {
     */
     
     public static func meanCrossRate(values: [Double]) -> Double? {
-        // TODO: implement
-        return nil
+        var countMC = 0.0
+        let size = values.count
+        let mean = Surge.mean(values)
+        for i in 0..<size-1 {
+            if ((values[i] >= mean && values[i+1] < mean) || (values[i] < mean && values[i+1] >= mean)){
+                countMC++
+            }
+        }
+        
+        return countMC/Double(size)
     }
     
     
@@ -292,8 +307,15 @@ public struct Sigma {
     */
     
     public static func interQuartileRange(values: [Double]) -> Double? {
-        // TODO: implement
-        return nil
+        let sorted = values.sort()
+        if(values.count == 128){
+            //lazy shortcut
+            return sorted[96] - sorted[32]
+        }
+        else {
+            let quart: Int = Int(values.count / 4)
+            return sorted[3*quart] - sorted[quart]
+        }
     }
     
     
