@@ -1,5 +1,4 @@
 import Foundation
-import Surge
 
 /**
 
@@ -61,6 +60,15 @@ public struct Sigma {
     */
     public static func sum(values: [Double]) -> Double {
         return values.reduce(0, combine: +)
+    }
+    
+    
+    public static func trapzSum(values: [Double]) -> Double {
+        var runSum : Double = 0.0
+        for i in 0..<values.count-1 {
+            runSum += (values[i] + values[i+1]) / 2
+        }
+        return runSum
     }
     
     
@@ -238,8 +246,8 @@ public struct Sigma {
     
     
     /*
-    Based on something authoritative:
-    <link>
+    Based on Wikipedia's algorithm
+    https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance#Higher-order_statistics
 
     - parameter values: Array of decimal numbers.
     - returns: skew of a set of values. Returns nil for an empty array.
@@ -247,8 +255,26 @@ public struct Sigma {
     */
     
     public static func skew(values: [Double]) -> Double? {
-        //TODO: implement this
-        return nil
+        var n = 0.0
+        var mean = 0.0
+        var M2 = 0.0
+        var M3 = 0.0
+        var M4 = 0.0
+        for x in values {
+            let n1 = n
+            n = n+1
+            let delta = x - mean
+            let delta_n = delta / n
+            let delta_n2 = delta_n * delta_n
+            let term1 = delta * delta_n * n1
+            mean = mean+delta_n
+            M4 = M4 + term1 * delta_n2 * (n*n - (3*n) + 3) + 6 * delta_n2 * M2 - 4 * delta_n * M3
+            M3 = M3 + term1 * delta_n * (n - 2) - 3 * delta_n * M2
+            M2 = M2 + term1
+        }
+        let toSkew = (sqrt(n) * M3) / (pow(M2, 1.5))
+        
+        return toSkew
     }
     
     
@@ -287,7 +313,7 @@ public struct Sigma {
     public static func meanCrossRate(values: [Double]) -> Double? {
         var countMC = 0.0
         let size = values.count
-        let mean = Surge.mean(values)
+        let mean = average(values)
         for i in 0..<size-1 {
             if ((values[i] >= mean && values[i+1] < mean) || (values[i] < mean && values[i+1] >= mean)){
                 countMC++
