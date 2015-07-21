@@ -485,6 +485,109 @@ public struct Sigma {
         
         return nil
     }
+    
+    
+    
+    
+    
+    
+    /*
+    
+    Fast Fourier Transform
+    
+    HUGE thanks to http://www.musingpaw.com/2014/06/an-fft-for-swift-and-xcode-6-playground.html
+    Ron Nicholson at MusingPaw for musing about FFTs in swift,
+    also for not figuring out Apple's Accelerate framework,
+    because now this can run on watchos. Hurrah!
+
+    */
+    public static func swiFFT(values : [Double]) -> [Double]{
+        var toTransform = values
+        var imArray = Array<Double>(count: values.count, repeatedValue: 0.0)
+        ronNicholsonFFT(  &toTransform, v: &imArray, n: values.count, dir: 1)
+        
+        return ronNicholsonMag(toTransform, v: imArray, n: values.count)
+    }
+    
+    // Canonical in-place decimation-in-time radix-2 FFT
+    static func ronNicholsonFFT (inout u : [Double], inout v : [Double], n: Int, dir : Int) -> () {
+        var sinTab = [Double]()
+
+        let flag = dir // forward
+        
+        if sinTab.count != n {   // build twiddle factor lookup table
+            while sinTab.count > n {
+                sinTab.removeLast()
+            }
+            sinTab = [Double](count: n, repeatedValue: 0.0)
+            for i in 0 ..< n {
+                let x = sin(2.0 * M_PI * Double(i) / Double(n))
+                sinTab[i] = x
+            }
+            print("sine table length = \(n)")
+        }
+        
+        let m : Int = Int(log2(Double(n)))
+        for k in 0 ..< n {
+            // rem *** generate a bit reversed address vr k ***
+            var ki = k
+            var kr = 0
+            for i in 1...m { // =1 to m
+                kr = kr << 1  //  **  left shift result kr by 1 bit
+                if ki % 2 == 1 { kr = kr + 1 }
+                ki = ki >> 1   //  **  right shift temp ki by 1 bit
+            }
+            // rem *** swap data vr k to bit reversed address kr
+            if (kr > k) {
+                let tr = u[kr] ; u[kr] = u[k] ; u[k] = tr
+                let ti = v[kr] ; v[kr] = v[k] ; v[k] = ti
+            }
+        }
+        
+        var istep = 2
+        while ( istep <= n ) { //  rem  *** layers 2,4,8,16, ... ,n ***
+            let is2 = istep / 2
+            let astep = n / istep
+            for km in 0 ..< is2 { // rem  *** outer row loop ***
+                let a  = km * astep  // rem  twiddle angle index
+                // var wr = cos(2.0 * M_PI * Double(km) / Double(istep))
+                // var wi = sin(2.0 * M_PI * Double(km) / Double(istep))
+                let wr =  sinTab[a+(n/4)] // rem  get sin from table lookup
+                var wi =  sinTab[a]       // rem  pos for fft , neg for ifft
+                if (flag == -1) { wi = -wi }
+                for var ki = 0; ki <= (n - istep) ; ki += istep { //  rem  *** inner column loop ***
+                    let i = km + ki
+                    let j = (is2) + i
+                    let tr = wr * u[j] - wi * v[j]  // rem ** butterfly complex multiply **
+                    let ti = wr * v[j] + wi * u[j]  // rem ** using a temp variable **
+                    let qr = u[i]
+                    let qi = v[i]
+                    u[j] = qr - tr
+                    v[j] = qi - ti
+                    u[i] = qr + tr
+                    v[i] = qi + ti
+                } // next ki
+            } // next km
+            istep = istep * 2
+        }
+        let a = 1.0 / Double(n)
+        for i in 0 ..< n {
+            u[i] = u[i] * a
+            v[i] = v[i] * a
+        }
+    }
+    
+    // compute magnitude vector
+    static func ronNicholsonMag (u : [Double], v : [Double], n: Int) -> [Double] {
+        var m = [Double](count: n, repeatedValue: 0.0)
+        for i in 0 ..< n {
+            m[i] = sqrt(u[i]*u[i]+v[i]*v[i])   // Quicklook here to see a plot of the results
+            
+        }
+        return(m)
+    }
+    
+    
 }
 
 
